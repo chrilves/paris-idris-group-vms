@@ -1,0 +1,90 @@
+---
+- hosts: all
+  remote_user: root
+  become: yes
+  tasks:
+  - name: pig
+    user:
+      state: present
+      name: pig
+      home: /home/pig
+      create_home: yes
+      generate_ssh_key: yes
+      group: wheel
+      password: '$6$qAW8HDMg$CDyPs7HHks6aaO7qFVTL1FRvgHJscQckoF/cmYNaGvGkp/lT3tO/A80i4ghLrvS4eMzM7u4eTxJaJpunU/Axx1'
+  - name: system upgrade
+    pacman:
+      update_cache: yes
+      upgrade: yes
+  - name: packages
+    pacman:
+      name:
+      - atom
+        agda
+        agda-stdlib
+        base-devel
+        code
+        coq
+        coqide
+        emacs
+        git
+        idris
+        lxqt
+        opam
+        powerline
+        tmux
+        vim
+        z3
+      state: present
+
+  - name: vscode extensions
+    become_user: pig
+    command: code --install-extension zjhmale.idris \
+                  --install-extension siegebell.vscoq \
+                  --install-extension artagnon.vsfstar
+
+  - name: atom extensions
+    command: apm install agda-mode language-agda language-idris
+    become_user: pig
+
+  - name: fstar
+    block:
+      - name: opam init
+        command: opam init -y
+      - name: create ocaml-4.04.0
+        command: opam switch -y create ocaml-base-compiler 4.04.0
+      - name: select ocaml-4.04.0
+        command: opam switch -y set-base ocaml-base-compiler=4.04.0
+      - name: install fstar
+        command: opam install -y fstar=0.9.6.0 --destdir /usr/local/
+      - name: atom fstar
+        block:
+          - name: cloning repo
+            become_user: pig
+            command: git clone https://github.com/FStarLang/atom-fstar.git
+            args:
+              chdir: /home/pig
+
+          - name: install
+            become_user: pig
+            command: apm install
+            args:
+              chdir: /home/pig/atom-fstar
+
+          - name: link
+            become_user: pig
+            command: apm link
+            args:
+              chdir: /home/pig/atom-fstar
+
+      - name: cleaning
+        block:
+          - name: opam package
+            pacman:
+              recurse: yes
+              state: absent
+              name: opam
+          - name: opam files
+            command: rm -frv /root/.opam/
+  - name: clean package cache
+    command: find /var/cache/pacman/pkg/ -type f -delete
