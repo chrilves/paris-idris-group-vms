@@ -3,6 +3,22 @@
   remote_user: root
   become: yes
   tasks:
+  - name: Keeboard
+    copy:
+      content: KEYMAP=fr
+      dest: /etc/vconsole.conf
+      owner: root
+      mode: u=rw,g=r,o=r
+  - name: Set timezone to Asia/Tokyo
+    timezone:
+      name: Europe/Paris
+  - name: sudoers config
+    copy:
+      src: sudoers
+      dest: /etc/sudoers
+      owner: root
+      group: root
+      mode: u=rw,g=,o=
   - name: pig
     user:
       state: present
@@ -23,19 +39,35 @@
         agda
         agda-stdlib
         base-devel
+        bash-completion
         code
         coq
         coqide
         emacs
         git
         idris
-        lxqt
         opam
         powerline
+        sddm
         tmux
         vim
+        xfce4
+        xorg
+        xorg-xinit
         z3
       state: present
+  - name: sddm config
+    copy:
+      src: sddm.conf
+      dest: /etc/sddm.conf
+      owner: root
+      group: root
+      mode: u=rw,g=r,o=r
+  - name: sddm enable
+    systemd:
+      daemon_reload: yes
+      name: sddm
+      enabled: yes
 
   - name: vscode extensions
     become_user: pig
